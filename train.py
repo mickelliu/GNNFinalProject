@@ -8,8 +8,9 @@ import numpy as np
 import scipy.sparse as sp
 import torch
 from torch import optim
+from tqdm import tqdm
 
-from gae.model import GCNModelVAE
+from gae.model import GCNModelVAE, Discriminator
 from gae.optimizer import loss_function
 from gae.utils import load_data, mask_test_edges, preprocess_graph, get_roc_score
 
@@ -18,10 +19,11 @@ parser.add_argument('--model', type=str, default='gcn_vae', help="models used")
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=200, help='Number of epochs to train.')
 parser.add_argument('--hidden1', type=int, default=32, help='Number of units in hidden layer 1.')
-parser.add_argument('--hidden2', type=int, default=16, help='Number of units in hidden layer 2.')
+parser.add_argument('--hidden2', type=int, default=32, help='Number of units in hidden layer 2.')
+parser.add_argument('--hidden3', type=int, default=64, help='Number of units in hidden layer 3.')
 parser.add_argument('--lr', type=float, default=0.01, help='Initial learning rate.')
 parser.add_argument('--dropout', type=float, default=0., help='Dropout rate (1 - keep probability).')
-parser.add_argument('--dataset-str', type=str, default='cora', help='type of dataset.')
+parser.add_argument('--dataset-str', type=str, default='citeseer', help='type of dataset.')
 
 args = parser.parse_args()
 
@@ -49,28 +51,35 @@ def gae_for(args):
     norm = adj.shape[0] * adj.shape[0] / float((adj.shape[0] * adj.shape[0] - adj.sum()) * 2)
 
     model = GCNModelVAE(feat_dim, args.hidden1, args.hidden2, args.dropout)
+    D = Discriminator(args.hidden1, args.hidden2, args.hidden3)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     hidden_emb = None
-    for epoch in range(args.epochs):
-        t = time.time()
-        model.train()
-        optimizer.zero_grad()
-        recovered, mu, logvar = model(features, adj_norm)
-        loss = loss_function(preds=recovered, labels=adj_label,
-                             mu=mu, logvar=logvar, n_nodes=n_nodes,
-                             norm=norm, pos_weight=pos_weight)
-        loss.backward()
-        cur_loss = loss.item()
-        optimizer.step()
 
-        hidden_emb = mu.data.numpy()
-        roc_curr, ap_curr = get_roc_score(hidden_emb, adj_orig, val_edges, val_edges_false)
+    z_real = torch.tensor(np.random.randn(adj.shape[0], args.hidden2)).float()
 
-        print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(cur_loss),
-              "val_ap=", "{:.5f}".format(ap_curr),
-              "time=", "{:.5f}".format(time.time() - t)
-              )
+    with tqdm(total=args.epochs, postfix=dict, mininterval=0.3) as pbar:
+        for epoch in range(args.epochs):
+            t = time.time()
+            model.train()
+            optimizer.zero_grad()
+            recovered, mu, logvar, z = model(features, adj_norm)
+            loss = loss_function(preds=recovered, labels=adj_label,
+                                 mu=mu, logvar=logvar, n_nodes=n_nodes,
+                                 norm=norm, pos_weight=pos_weight)
+            loss_dc = loss_dc(z_real, z)
+
+            loss.backward()
+            cur_loss = loss.item()
+            optimizer.step()
+
+            hidden_emb = mu.data.numpy()
+            roc_curr, ap_curr = get_roc_score(hidden_emb, adj_orig, val_edges, val_edges_false)
+
+            pbar.set_postfix(**{'train_loss': "{:.5f}".format(cur_loss),
+                                "val_ap=": "{:.5f}".format(ap_curr),
+                                "time=": "{:.5f}".format(time.time() - t), })
+            pbar.update(1)
 
     print("Optimization Finished!")
 
