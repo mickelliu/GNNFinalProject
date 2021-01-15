@@ -16,13 +16,11 @@ def loss_function(preds, labels, mu, logvar, n_nodes, norm, pos_weight):
     return cost + KLD
 
 def loss_dc(z_real, z):
-    criterion = nn.BCEWithLogitsLoss()
-    dc_loss_real = criterion(z_real, torch.ones(z_real.shape))
-    dc_loss_fake = criterion(z, torch.zeros(z.shape))
+    dc_loss_real = nn.BCEWithLogitsLoss()(z_real, torch.ones(z_real.shape))
+    dc_loss_fake = nn.BCEWithLogitsLoss()(z, torch.zeros(z.shape))
     return  dc_loss_real + dc_loss_fake
     # todo
 
 def loss_gen(z):
-    criterion = nn.BCEWithLogitsLoss()
-    gen_loss = criterion(z, torch.zeros(z.shape))
+    gen_loss = nn.BCEWithLogitsLoss()(z, torch.zeros(z.shape))
     return gen_loss

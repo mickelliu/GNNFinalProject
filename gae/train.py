@@ -23,7 +23,7 @@ parser.add_argument('--hidden2', type=int, default=32, help='Number of units in 
 parser.add_argument('--hidden3', type=int, default=64, help='Number of units in hidden layer 3.')
 parser.add_argument('--lr', type=float, default=0.01, help='Initial learning rate.')
 parser.add_argument('--dropout', type=float, default=0., help='Dropout rate (1 - keep probability).')
-parser.add_argument('--dataset-str', type=str, default='citeseer', help='type of dataset.')
+parser.add_argument('--dataset-str', type=str, default='cora', help='type of dataset.')
 
 args = parser.parse_args()
 
@@ -53,6 +53,7 @@ def gae_for(args):
     model = GCNModelVAE(feat_dim, args.hidden1, args.hidden2, args.dropout)
     D = Discriminator(args.hidden1, args.hidden2, args.hidden3)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer_dc = optim.Adam(D.parameters(), lr=args.lr)
 
     hidden_emb = None
 
@@ -62,24 +63,32 @@ def gae_for(args):
         for epoch in range(args.epochs):
             t = time.time()
             model.train()
-            optimizer.zero_grad()
+            D.train()
+            model.zero_grad()
+            D.zero_grad()
             recovered, mu, logvar, z = model(features, adj_norm)
             loss = loss_function(preds=recovered, labels=adj_label,
                                  mu=mu, logvar=logvar, n_nodes=n_nodes,
                                  norm=norm, pos_weight=pos_weight)
+            loss.backward(retain_graph=True)
+            cur_loss = loss.item()
+
             D_z = D(z)
             D_z_real = D(z_real)
             dc_loss = loss_dc(D_z_real, D_z)
             gen_loss = loss_gen(D_z)
+            dc_loss.backward(retain_graph=True)
+            gen_loss.backward()
 
-            loss.backward()
-            cur_loss = loss.item()
             optimizer.step()
+            optimizer_dc.step()
 
             hidden_emb = mu.data.numpy()
             roc_curr, ap_curr = get_roc_score(hidden_emb, adj_orig, val_edges, val_edges_false)
 
             pbar.set_postfix(**{'train_loss': "{:.5f}".format(cur_loss),
+                                # 'dc_loss': "{:.5f}".format(dc_loss),
+                                # 'gen_loss': "{:.5f}".format(gen_loss),
                                 "val_ap=": "{:.5f}".format(ap_curr),
                                 "time=": "{:.5f}".format(time.time() - t), })
             pbar.update(1)
