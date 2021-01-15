@@ -4,7 +4,6 @@ import torch.nn.functional as F
 
 from gae.layers import GraphConvolution
 
-
 class GCNModelVAE(nn.Module):
     def __init__(self, input_feat_dim, hidden_dim1, hidden_dim2, dropout):
         super(GCNModelVAE, self).__init__()
