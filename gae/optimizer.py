@@ -1,6 +1,7 @@
 import torch
 import torch.nn.modules.loss
 import torch.nn.functional as F
+import torch.nn as nn
 
 
 def loss_function(preds, labels, mu, logvar, n_nodes, norm, pos_weight):
@@ -15,6 +16,13 @@ def loss_function(preds, labels, mu, logvar, n_nodes, norm, pos_weight):
     return cost + KLD
 
 def loss_dc(z_real, z):
-    torch.mean()
-    return
+    criterion = nn.BCEWithLogitsLoss()
+    dc_loss_real = criterion(z_real, torch.ones(z_real.shape))
+    dc_loss_fake = criterion(z, torch.zeros(z.shape))
+    return  dc_loss_real + dc_loss_fake
     # todo
+
+def loss_gen(z):
+    criterion = nn.BCEWithLogitsLoss()
+    gen_loss = criterion(z, torch.zeros(z.shape))
+    return gen_loss

@@ -16,7 +16,7 @@ def load_data(dataset):
         fix Pickle incompatibility of numpy arrays between Python 2 and 3
         https://stackoverflow.com/questions/11305790/pickle-incompatibility-of-numpy-arrays-between-python-2-and-3
         '''
-        with open("data/ind.{}.{}".format(dataset, names[i]), 'rb') as rf:
+        with open("../data/ind.{}.{}".format(dataset, names[i]), 'rb') as rf:
             u = pkl._Unpickler(rf)
             u.encoding = 'latin1'
             cur_data = u.load()
@@ -25,7 +25,7 @@ def load_data(dataset):
         #     pkl.load(open("data/ind.{}.{}".format(dataset, names[i]), 'rb')))
     x, tx, allx, graph = tuple(objects)
     test_idx_reorder = parse_index_file(
-        "data/ind.{}.test.index".format(dataset))
+        "../data/ind.{}.test.index".format(dataset))
     test_idx_range = np.sort(test_idx_reorder)
 
     if dataset == 'citeseer':

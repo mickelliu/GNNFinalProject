@@ -55,5 +55,5 @@ class Discriminator(nn.Module):
     def forward(self, x):
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
-        return self.fc3(x)
+        return self.fc3(x).sigmoid_()
         # todo

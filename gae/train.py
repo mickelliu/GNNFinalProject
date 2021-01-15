@@ -11,7 +11,7 @@ from torch import optim
 from tqdm import tqdm
 
 from gae.model import GCNModelVAE, Discriminator
-from gae.optimizer import loss_function
+from gae.optimizer import loss_function, loss_dc, loss_gen
 from gae.utils import load_data, mask_test_edges, preprocess_graph, get_roc_score
 
 parser = argparse.ArgumentParser()
@@ -67,7 +67,8 @@ def gae_for(args):
             loss = loss_function(preds=recovered, labels=adj_label,
                                  mu=mu, logvar=logvar, n_nodes=n_nodes,
                                  norm=norm, pos_weight=pos_weight)
-            loss_dc = loss_dc(z_real, z)
+            dc_loss = loss_dc(z_real, z)
+            gen_loss = loss_gen(z)
 
             loss.backward()
             cur_loss = loss.item()
