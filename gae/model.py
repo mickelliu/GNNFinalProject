@@ -4,17 +4,28 @@ import torch.nn.functional as F
 
 from gae.layers import GraphConvolution
 
-class GCNModelVAE(nn.Module):
-    def __init__(self, input_feat_dim, hidden_dim1, hidden_dim2, dropout):
-        super(GCNModelVAE, self).__init__()
+
+class GCNEmbedder(nn.Module):
+    def __init__(self, input_feat_dim, hidden_dim1, dropout):
+        super(GCNEmbedder, self).__init__()
         self.gc1 = GraphConvolution(input_feat_dim, hidden_dim1, dropout, act=F.relu)
+
+    def embed(self, x, adj):
+        return self.gc1(x, adj)
+
+    def forward(self, x, adj):
+        return self.embed(x, adj)
+
+
+class GCNEncoder(nn.Module):
+    def __init__(self, hidden_dim1, hidden_dim2, dropout):
+        super(GCNEncoder, self).__init__()
         self.gc2 = GraphConvolution(hidden_dim1, hidden_dim2, dropout, act=lambda x: x)
         self.gc3 = GraphConvolution(hidden_dim1, hidden_dim2, dropout, act=lambda x: x)
         self.dc = InnerProductDecoder(dropout, act=lambda x: x)
 
-    def encode(self, x, adj):
-        hidden1 = self.gc1(x, adj)
-        return self.gc2(hidden1, adj), self.gc3(hidden1, adj)
+    def encode(self, z_in, adj):
+        return self.gc2(z_in, adj), self.gc3(z_in, adj)
 
     def reparameterize(self, mu, logvar):
         if self.training:
@@ -24,10 +35,10 @@ class GCNModelVAE(nn.Module):
         else:
             return mu
 
-    def forward(self, x, adj):
-        mu, logvar = self.encode(x, adj)
-        z = self.reparameterize(mu, logvar)
-        return self.dc(z), mu, logvar, z
+    def forward(self, z_in, adj):
+        mu, logvar = self.encode(z_in, adj)
+        z_out = self.reparameterize(mu, logvar)
+        return self.dc(z_out), mu, logvar, z_out
 
 
 class InnerProductDecoder(nn.Module):
@@ -42,6 +53,7 @@ class InnerProductDecoder(nn.Module):
         z = F.dropout(z, self.dropout, training=self.training)
         adj = self.act(torch.mm(z, z.t()))
         return adj
+
 
 class Discriminator(nn.Module):
     def __init__(self, hidden_dim1, hidden_dim2, hidden_dim3):

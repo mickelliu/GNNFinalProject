@@ -2,6 +2,7 @@ import torch
 import torch.nn.modules.loss
 import torch.nn.functional as F
 import torch.nn as nn
+from gae.hessian.hessian import *
 
 
 def loss_function(preds, labels, mu, logvar, n_nodes, norm, pos_weight):
@@ -15,12 +16,19 @@ def loss_function(preds, labels, mu, logvar, n_nodes, norm, pos_weight):
         1 + 2 * logvar - mu.pow(2) - logvar.exp().pow(2), 1))
     return cost + KLD
 
+
 def loss_dc(z_real, z):
     dc_loss_real = nn.BCEWithLogitsLoss()(z_real, torch.ones(z_real.shape))
     dc_loss_fake = nn.BCEWithLogitsLoss()(z, torch.zeros(z.shape))
-    return  dc_loss_real + dc_loss_fake
+    return dc_loss_real + dc_loss_fake
     # todo
+
 
 def loss_gen(z):
     gen_loss = nn.BCEWithLogitsLoss()(z, torch.zeros(z.shape))
     return gen_loss
+
+
+def loss_hessian(G, z, **G_kwargs):
+    return hessian_penalty(G, z, **G_kwargs)
+    # return decoder_hessian_penalty(G, z, adj=adj)
