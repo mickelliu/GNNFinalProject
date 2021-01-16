@@ -98,11 +98,11 @@ def gae_for(args):
                                  mu=mu, logvar=logvar, n_nodes=n_nodes,
                                  norm=norm, pos_weight=pos_weight)
 
-            # hessian_loss = 0.1*loss_hessian(encoder, z_in, adj=adj_norm)
-            # loss = hessian_loss
+            hessian_loss = loss_hessian(encoder, z_in, adj=adj_norm)
+
+            loss += 0.1*hessian_loss
 
             loss.backward(retain_graph=True)
-            # hessian_loss.backward()
 
             optimizer_embedding.step()
             optimizer_encoding.step()
