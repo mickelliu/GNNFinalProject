@@ -51,9 +51,9 @@ def gae_for(args):
     norm = adj.shape[0] * adj.shape[0] / float((adj.shape[0] * adj.shape[0] - adj.sum()) * 2)
 
     model = GCNModelVAE(feat_dim, args.hidden1, args.hidden2, args.dropout)
-    D = Discriminator(args.hidden1, args.hidden2, args.hidden3)
+    # D = Discriminator(args.hidden1, args.hidden2, args.hidden3)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    optimizer_dc = optim.Adam(D.parameters(), lr=args.lr)
+    # optimizer_dc = optim.Adam(D.parameters(), lr=args.lr)
 
     hidden_emb = None
 
@@ -63,9 +63,9 @@ def gae_for(args):
         for epoch in range(args.epochs):
             t = time.time()
             model.train()
-            D.train()
+            # D.train()
             model.zero_grad()
-            D.zero_grad()
+            # D.zero_grad()
             recovered, mu, logvar, z = model(features, adj_norm)
             loss = loss_function(preds=recovered, labels=adj_label,
                                  mu=mu, logvar=logvar, n_nodes=n_nodes,
@@ -73,15 +73,15 @@ def gae_for(args):
             loss.backward(retain_graph=True)
             cur_loss = loss.item()
 
-            D_z = D(z)
-            D_z_real = D(z_real)
-            dc_loss = loss_dc(D_z_real, D_z)
-            gen_loss = loss_gen(D_z)
-            dc_loss.backward(retain_graph=True)
-            gen_loss.backward()
+            # D_z = D(z)
+            # D_z_real = D(z_real)
+            # dc_loss = loss_dc(D_z_real, D_z)
+            # gen_loss = loss_gen(D_z)
+            # dc_loss.backward(retain_graph=True)
+            # gen_loss.backward()
 
             optimizer.step()
-            optimizer_dc.step()
+            # optimizer_dc.step()
 
             hidden_emb = mu.data.numpy()
             roc_curr, ap_curr = get_roc_score(hidden_emb, adj_orig, val_edges, val_edges_false)

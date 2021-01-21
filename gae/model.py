@@ -2,19 +2,24 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from gae.layers import GraphConvolution
+from gae.layers import GraphConvolution, DisConv
 
 class GCNModelVAE(nn.Module):
     def __init__(self, input_feat_dim, hidden_dim1, hidden_dim2, dropout):
         super(GCNModelVAE, self).__init__()
         self.gc1 = GraphConvolution(input_feat_dim, hidden_dim1, dropout, act=F.relu)
+        self.dc1 = DisConv(input_feat_dim, 8, 4)
+        self.dc2 = DisConv(32, 8, 4)
+        self.dc3 = DisConv(32, 8, 4)
         self.gc2 = GraphConvolution(hidden_dim1, hidden_dim2, dropout, act=lambda x: x)
         self.gc3 = GraphConvolution(hidden_dim1, hidden_dim2, dropout, act=lambda x: x)
         self.dc = InnerProductDecoder(dropout, act=lambda x: x)
 
     def encode(self, x, adj):
-        hidden1 = self.gc1(x, adj)
-        return self.gc2(hidden1, adj), self.gc3(hidden1, adj)
+        # hidden1 = self.gc1(x, adj)
+        # return self.gc2(hidden1, adj), self.gc3(hidden1, adj)
+        hidden1 = F.relu(self.dc1(x, adj))
+        return self.dc2(hidden1, adj), self.dc3(hidden1, adj)
 
     def reparameterize(self, mu, logvar):
         if self.training:
