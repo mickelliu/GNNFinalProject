@@ -10,32 +10,36 @@ import torch
 from torch import optim
 from tqdm import tqdm
 
-from gae.layers import GraphConvolution
+# from gae.layers import GraphConvolution
+from gae.experiment import *
 from gae.model import *
 from gae.optimizer import loss_function, loss_dc, loss_gen, loss_hessian
 from gae.utils import load_data, mask_test_edges, preprocess_graph, get_roc_score
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, default='gcn_vae', help="models used")
-parser.add_argument('--seed', type=int, default=42, help='Random seed.')
+parser.add_argument('--seed', type=int, default=69, help='Random seed.')
 parser.add_argument('--epochs', type=int, default=200, help='Number of epochs to train.')
 parser.add_argument('--hidden1', type=int, default=32, help='Number of units in hidden layer 1.')
-parser.add_argument('--hidden2', type=int, default=6, help='Number of units in hidden layer 2.')
-parser.add_argument('--hidden3', type=int, default=64, help='Number of units in hidden layer 3.')
+parser.add_argument('--hidden2', type=int, default=4, help='Number of units in hidden layer 2.')
+
+# parser.add_argument('--hidden3', type=int, default=64, help='Number of units in hidden layer 3.')
 parser.add_argument('--lr', type=float, default=0.01, help='Initial learning rate.')
 parser.add_argument('--dropout', type=float, default=0., help='Dropout rate (1 - keep probability).')
 parser.add_argument('--dataset-str', type=str, default='citeseer', help='type of dataset.')
+parser.add_argument('--enable_hessian', action="store_true", default=True, help='Hessian Penalty Weight')
+parser.add_argument('--lambda_H', type=float, default=0.1, help='Hessian Penalty Weight')
 
 args = parser.parse_args()
 
 
 def gae_for(args):
-    # # GPU
-    # if torch.cuda.is_available():
-    #     dev = "cuda:0"
-    # else:
-    #     dev = "cpu"
-    # device = torch.device(dev)
+    # GPU
+    if torch.cuda.is_available():
+        dev = "cuda:0"
+    else:
+        dev = "cpu"
+    device = torch.device(dev)
 
     print("Using {} dataset".format(args.dataset_str))
     adj, features = load_data(args.dataset_str)
@@ -58,11 +62,11 @@ def gae_for(args):
     pos_weight = torch.tensor(float(adj.shape[0] * adj.shape[0] - adj.sum()) / adj.sum())
     norm = adj.shape[0] * adj.shape[0] / float((adj.shape[0] * adj.shape[0] - adj.sum()) * 2)
 
+    # D = Discriminator(args.hidden1, args.hidden2, args.hidden3)
 
-    D = Discriminator(args.hidden1, args.hidden2, args.hidden3)
+    embedder = GCNEmbedder(feat_dim, args.hidden1, args.dropout).to(device)
+    encoder = GCNEncoder(args.hidden1, args.hidden2, args.dropout).to(device)
 
-    embedder = GCNEmbedder(feat_dim, args.hidden1, args.dropout)
-    encoder = GCNEncoder(args.hidden1, args.hidden2, args.dropout)
     optimizer_embedding = optim.Adam(embedder.parameters(), lr=args.lr)
     optimizer_encoding = optim.Adam(encoder.parameters(), lr=args.lr)
 
@@ -70,7 +74,9 @@ def gae_for(args):
 
     hidden_emb = None
 
-    z_real = torch.tensor(np.random.randn(adj.shape[0], args.hidden2)).float()
+    # z_real = torch.tensor(np.random.randn(adj.shape[0], args.hidden2)).float()
+
+    features, adj_norm, pos_weight, adj_label = features.to(device), adj_norm.to(device), pos_weight.to(device), adj_label.to(device)
 
     with tqdm(total=args.epochs, postfix=dict, mininterval=0.3) as pbar:
         for epoch in range(args.epochs):
@@ -98,9 +104,9 @@ def gae_for(args):
                                  mu=mu, logvar=logvar, n_nodes=n_nodes,
                                  norm=norm, pos_weight=pos_weight)
 
-            hessian_loss = loss_hessian(encoder, z_in, adj=adj_norm)
-
-            loss += 0.1*hessian_loss
+            if args.enable_hessian:
+                hessian_loss = loss_hessian(encoder, z_in, adj=adj_norm)
+                loss += 0.1 * hessian_loss
 
             loss.backward(retain_graph=True)
 
@@ -109,7 +115,7 @@ def gae_for(args):
 
             # optimizer_dc.step()
             cur_loss = loss.item()
-            hidden_emb = mu.data.numpy()
+            hidden_emb = mu.cpu().data.numpy()
             roc_curr, ap_curr = get_roc_score(hidden_emb, adj_orig, val_edges, val_edges_false)
 
             pbar.set_postfix(**{'train_loss': "{:.5f}".format(cur_loss),
@@ -125,14 +131,9 @@ def gae_for(args):
     roc_score, ap_score = get_roc_score(hidden_emb, adj_orig, test_edges, test_edges_false)
     print('Test ROC score: ' + str(roc_score))
     print('Test AP score: ' + str(ap_score))
-    return z_out
+    return z_out, roc_score, ap_score
 
 
 if __name__ == '__main__':
-    import seaborn as sns
-    import pandas as pd
-
-    z_out = gae_for(args)
-    z_out_pd = pd.DataFrame(z_out.detach().numpy())
-    ax = sns.heatmap(z_out_pd.corr().abs(), cmap="YlGnBu")
-
+    #experiment_1()
+    experiment_2()
