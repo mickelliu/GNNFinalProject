@@ -29,6 +29,7 @@ parser.add_argument('--dropout', type=float, default=0., help='Dropout rate (1 -
 parser.add_argument('--dataset-str', type=str, default='citeseer', help='type of dataset.')
 parser.add_argument('--enable_hessian', action="store_true", default=True, help='Hessian Penalty Weight')
 parser.add_argument('--lambda_H', type=float, default=0.1, help='Hessian Penalty Weight')
+parser.add_argument('--b_vae', type=float, default=1.0, help='Beta')
 
 args = parser.parse_args()
 
@@ -102,11 +103,11 @@ def gae_for(args):
 
             loss = loss_function(preds=recovered, labels=adj_label,
                                  mu=mu, logvar=logvar, n_nodes=n_nodes,
-                                 norm=norm, pos_weight=pos_weight)
+                                 norm=norm, pos_weight=pos_weight, b_vae=args.b_vae)
 
             if args.enable_hessian:
                 hessian_loss = loss_hessian(encoder, z_in, adj=adj_norm)
-                loss += 0.1 * hessian_loss
+                loss += args.lambda_H * hessian_loss
 
             loss.backward(retain_graph=True)
 
@@ -126,14 +127,16 @@ def gae_for(args):
                                 "time=": "{:.5f}".format(time.time() - t), })
             pbar.update(1)
 
-    print("Optimization Finished!")
+    print(f"Experiment Name: hidden_2 = {args.hidden2} -----> Optimization Finished!")
 
     roc_score, ap_score = get_roc_score(hidden_emb, adj_orig, test_edges, test_edges_false)
     print('Test ROC score: ' + str(roc_score))
     print('Test AP score: ' + str(ap_score))
+    print("")
     return z_out, roc_score, ap_score
 
 
 if __name__ == '__main__':
-    #experiment_1()
-    experiment_2()
+    #experiment_1(enable_hessian=False)
+    #experiment_2(enable_hessian=False, hidden2=12, lambda_H=1E-5)
+    z = experiment_3(enable_hessian=True)
