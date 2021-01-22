@@ -1,5 +1,5 @@
 # GNNFinalProject
-For 图神经网络 Final Project
+For 《图神经网络》课程 Final Project
 
 ### Adapted from: 
 https://github.com/wpeebles/hessian_penalty  
