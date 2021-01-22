@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from gae.train import gae_for
-from gae import args
+from src.train import gae_for
+from src import args
 
 
 def experiment_1(enable_hessian):

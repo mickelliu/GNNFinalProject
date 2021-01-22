@@ -8,9 +8,9 @@ import scipy.sparse as sp
 from torch import optim
 from tqdm import tqdm
 
-from gae.model import *
-from gae.optimizer import loss_function, loss_hessian
-from gae.utils import load_data, mask_test_edges, preprocess_graph, get_roc_score
+from src.model import *
+from src.optimizer import loss_function, loss_hessian
+from src.utils import load_data, mask_test_edges, preprocess_graph, get_roc_score
 
 
 def gae_for(args):

@@ -8,8 +8,8 @@ import torch.optim as optim
 import tqdm
 from sklearn.metrics import roc_auc_score, average_precision_score
 
-from gae.model import *
-from gae.optimizer import *
+from src.model import *
+from src.optimizer import *
 
 
 def model_for(args):

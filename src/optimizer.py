@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.modules.loss
 
-from gae.hessian.hessian import *
+from src.hessian.hessian import *
 
 
 def loss_function(preds, labels, mu, logvar, n_nodes, norm, pos_weight, b_vae=1.0):

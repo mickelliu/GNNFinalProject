@@ -1,4 +1,4 @@
-from gae.experiment import *
+from src.experiment import *
 
 if __name__ == '__main__':
     # experiment_1(enable_hessian=False)

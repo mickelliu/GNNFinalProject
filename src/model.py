@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from gae.layers import GraphConvolution
+from src.layers import GraphConvolution
 
 
 class GCNEmbedder(nn.Module):
