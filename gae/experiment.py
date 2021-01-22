@@ -1,8 +1,11 @@
-import seaborn as sns
-import pandas as pd
-import matplotlib.pyplot as plt
-from gae.train import args, gae_for
 import statistics
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+from gae.train import gae_for
+from gae import args
 
 
 def experiment_1(enable_hessian):
@@ -63,7 +66,8 @@ def experiment_2(enable_hessian, hidden2, lambda_H=0.1):
         ap.append(ap_score)
         roc.append(roc_score)
 
-    print(f"<<< ===== Enable Hessian = {args.enable_hessian}, Hidden_2 = {args.hidden2}, Lambda_H = {args.lambda_H} ===== >>>")
+    print(
+        f"<<< ===== Enable Hessian = {args.enable_hessian}, Hidden_2 = {args.hidden2}, Lambda_H = {args.lambda_H} ===== >>>")
     print(f"Average AP Score = {statistics.mean(ap)}, AP_std = {statistics.stdev(ap)}")
     print(f"Average ROC Score = {statistics.mean(roc)}, ROC_std = {statistics.stdev(roc)}")
 
@@ -89,7 +93,8 @@ def experiment_3(enable_hessian):
         for b_vae in beta_list:
             args.hidden2 = hidden_2
             args.b_vae = b_vae
-            print(f"<<< ===== Enable Hessian = {args.enable_hessian}, Hidden_2 = {args.hidden2}, Lambda_H = {args.lambda_H}, b_vae = {args.b_vae} ===== >>>")
+            print(
+                f"<<< ===== Enable Hessian = {args.enable_hessian}, Hidden_2 = {args.hidden2}, Lambda_H = {args.lambda_H}, b_vae = {args.b_vae} ===== >>>")
             z_out, _, _ = gae_for(args)
             z_out_pd = pd.DataFrame(z_out.cpu().detach().numpy())
             z_output[row].append(z_out_pd)

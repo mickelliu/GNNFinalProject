@@ -1,7 +1,7 @@
-import torch
-import torch.nn.modules.loss
-import torch.nn.functional as F
 import torch.nn as nn
+import torch.nn.functional as F
+import torch.nn.modules.loss
+
 from gae.hessian.hessian import *
 
 
@@ -13,7 +13,7 @@ def loss_function(preds, labels, mu, logvar, n_nodes, norm, pos_weight, b_vae=1.
     # https://arxiv.org/abs/1312.6114
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 / n_nodes * torch.mean(torch.sum(1 + 2 * logvar - mu.pow(2) - logvar.exp().pow(2), 1))
-    return cost + b_vae*KLD
+    return cost + b_vae * KLD
 
 
 def loss_dc(z_real, z):
@@ -30,4 +30,3 @@ def loss_gen(z):
 
 def loss_hessian(G, z, **G_kwargs):
     return hessian_penalty(G, z, **G_kwargs)
-    # return decoder_hessian_penalty(G, z, adj=adj)
